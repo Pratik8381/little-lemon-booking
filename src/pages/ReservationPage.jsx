@@ -1,164 +1,92 @@
-import React, { useRef, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useRef, useEffect, useState, useReducer } from "react";
+import BookingForm from "../components/BookingForm";
 import "../App.css";
 
+// This would normally fetch from an API
+const fetchAPI = (date) => {
+    // Simulate API that returns different available times based on date
+    const availableTimes = {
+        '2025-04-01': ['17:00', '18:00', '19:00', '20:00', '21:00'],
+        '2025-04-02': ['17:30', '18:30', '19:30', '20:30'],
+        '2025-04-03': ['17:00', '18:00', '20:00', '21:00'],
+        // Add more dates as needed
+    };
+
+    // Default times if date is not found
+    const defaultTimes = ['17:00', '18:00', '19:00', '20:00'];
+
+    return availableTimes[date] || defaultTimes;
+};
+
+// Reducer for managing available times
+const timesReducer = (state, action) => {
+    switch (action.type) {
+        case 'UPDATE_TIMES':
+            return fetchAPI(action.payload);
+        default:
+            return state;
+    }
+};
+
 const ReservationPage = () => {
-  const formRef = useRef();
-  const navigate = useNavigate();
+    const formRef = useRef();
+    const today = new Date().toISOString().split("T")[0];
 
-  useEffect(() => {
-    if (formRef.current) {
-      formRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, []);
+    // Initialize available times state with a reducer
+    const [availableTimes, dispatch] = useReducer(timesReducer, [], () => fetchAPI(today));
 
-  const today = new Date().toISOString().split("T")[0];
-  const now = new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+    // Form data state
+    const [formData, setFormData] = useState({
+        name: "",
+        date: today,
+        time: availableTimes[0] || "17:00",
+        guests: "1",
+        contactMethod: "email",
+    });
 
-  const [formData, setFormData] = useState({
-    name: "",
-    date: today,
-    time: now,
-    guests: "1",
-    contactMethod: "email",
-  });
+    const [formErrors, setFormErrors] = useState({});
 
-  const [formErrors, setFormErrors] = useState({});
+    useEffect(() => {
+        if (formRef.current) {
+            formRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, []);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+    // Update available times when date changes
+    useEffect(() => {
+        dispatch({ type: 'UPDATE_TIMES', payload: formData.date });
+    }, [formData.date]);
 
-  const validateForm = () => {
-    const errors = {};
-    if (!formData.name.trim()) errors.name = "Name is required";
-    if (!formData.date) errors.date = "Date is required";
-    if (!formData.time) errors.time = "Time is required";
-    if (!formData.guests || formData.guests < 1)
-      errors.guests = "Guests must be at least 1";
-    return errors;
-  };
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const errors = validateForm();
-    setFormErrors(errors);
+    const validateForm = () => {
+        const errors = {};
+        if (!formData.name.trim()) errors.name = "Name is required";
+        if (!formData.date) errors.date = "Date is required";
+        if (!formData.time) errors.time = "Time is required";
+        if (!formData.guests || formData.guests < 1)
+            errors.guests = "Guests must be at least 1";
+        if (formData.guests > 10)
+            errors.guests = "Maximum 10 guests per reservation";
+        return errors;
+    };
 
-    if (Object.keys(errors).length === 0) {
-      navigate("/contact-details", {
-        state: {
-          name: formData.name,
-          date: formData.date,
-          time: formData.time,
-          guests: formData.guests,
-          contactMethod: formData.contactMethod,
-        },
-      });
-    } else {
-      navigate("/error");
-    }
-  };
+    return (
+        <section className="reservation-page" ref={formRef}>
+            <h2 className="reservation-title">Reserve a Table</h2>
 
-  return (
-    <section className="reservation-page">
-      <h2 className="reservation-title">Reserve a Table</h2>
-
-      <form
-        ref={formRef}
-        className="reservation-form"
-        onSubmit={handleSubmit}
-        aria-label="Reservation Form"
-      >
-        <label htmlFor="name">Name:</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          placeholder="Your full name"
-          value={formData.name}
-          onChange={handleChange}
-          aria-required="true"
-        />
-        {formErrors.name && <span className="error">{formErrors.name}</span>}
-
-        <label htmlFor="date">Date:</label>
-        <input
-          type="date"
-          id="date"
-          name="date"
-          value={formData.date}
-          onChange={handleChange}
-          aria-required="true"
-        />
-        {formErrors.date && <span className="error">{formErrors.date}</span>}
-
-        <label htmlFor="time">Time:</label>
-        <input
-          type="time"
-          id="time"
-          name="time"
-          value={formData.time}
-          onChange={handleChange}
-          aria-required="true"
-        />
-        {formErrors.time && <span className="error">{formErrors.time}</span>}
-
-        <label htmlFor="guests">Number of Guests:</label>
-        <input
-          type="number"
-          id="guests"
-          name="guests"
-          min="1"
-          value={formData.guests}
-          onChange={handleChange}
-          aria-required="true"
-        />
-        {formErrors.guests && (
-          <span className="error">{formErrors.guests}</span>
-        )}
-
-        <label>Preferred Contact Method:</label>
-        <div className="contact-options">
-          <label
-            className={`radio-option ${
-              formData.contactMethod === "email" ? "selected" : ""
-            }`}
-          >
-            <input
-              type="radio"
-              name="contactMethod"
-              value="email"
-              checked={formData.contactMethod === "email"}
-              onChange={handleChange}
+            <BookingForm
+                formData={formData}
+                formErrors={formErrors}
+                handleChange={handleChange}
+                validateForm={validateForm}
+                availableTimes={availableTimes}
             />
-            Email
-          </label>
-
-          <label
-            className={`radio-option ${
-              formData.contactMethod === "text" ? "selected" : ""
-            }`}
-          >
-            <input
-              type="radio"
-              name="contactMethod"
-              value="text"
-              checked={formData.contactMethod === "text"}
-              onChange={handleChange}
-            />
-            Text
-          </label>
-        </div>
-
-        <button type="submit" className="reserve-btn">
-          Book Table
-        </button>
-      </form>
-    </section>
-  );
+        </section>
+    );
 };
 
 export default ReservationPage;

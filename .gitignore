@@ -1,0 +1,9 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/little-lemon-booking/FileContentIndex/26e5abe3-107b-4126-bf4f-bc61e0e1a406.vsidx
+/.vs/little-lemon-booking/FileContentIndex
+/.vs/little-lemon-booking/v17
+/.vs/slnx.sqlite
+/.vs/VSWorkspaceState.json
